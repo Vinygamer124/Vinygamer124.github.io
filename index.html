@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chatbot AI</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .chat-container {
+      width: 400px;
+      background-color: #fff;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      border-radius: 10px;
+      position: relative;
+    }
+    .chat-box {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+    .chat-input {
+      width: calc(100% - 20px);
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+    .chat-button {
+      padding: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+      margin-right: 5px;
+      margin-bottom: 5px;
+    }
+    .chat-button:hover {
+      background-color: #0056b3;
+    }
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 10;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.4);
+    }
+    .modal-content {
+      background-color: #fefefe;
+      margin: 10% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      border-radius: 10px;
+    }
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .close:hover,
+    .close:focus {
+      color: black;
+      text-decoration: none;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .action-button {
+      padding: 5px 10px;
+      margin-right: 5px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 3px;
+    }
+    .action-button.delete {
+      background-color: #dc3545;
+    }
+    .action-button:hover {
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-box" id="chat-box"></div>
+    <input type="text" id="chat-input" class="chat-input" placeholder="Nhập tin nhắn...">
+    <button onclick="sendMessage()" class="chat-button">Gửi</button>
+    <button onclick="trainBot()" class="chat-button">Huấn luyện Bot</button>
+    <button onclick="downloadAIData()" class="chat-button">Tải xuống Dữ liệu AI</button>
+    <button onclick="uploadAIData()" class="chat-button">Tải lên Dữ liệu AI</button>
+    <button onclick="uploadTextFile()" class="chat-button">Tải lên Văn bản</button>
+    <button onclick="uploadImage()" class="chat-button">Tải lên Hình ảnh</button>
+    <button onclick="viewAIMemory()" class="chat-button">Xem Bộ nhớ AI</button>
+<button onclick="addGrammarRule()" class="chat-button">Thêm Cấu trúc Ngữ pháp</button>
+  </div>
+
+  <!-- Modal for AI Memory -->
+  <div id="aiMemoryModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal()">&times;</span>
+      <h2>Bộ nhớ AI</h2>
+      <table id="aiMemoryTable">
+        <thead>
+          <tr>
+            <th>Câu hỏi</th>
+            <th>Trả lời</th>
+            <th>Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Nội dung sẽ được thêm bằng JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal for Drawing -->
+  <div id="drawModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal()">&times;</span>
+      <h2>Vẽ và Gán Tên Vật thể</h2>
+      <canvas id="drawCanvas" width="300" height="300" style="border:1px solid #000;"></canvas>
+      <br>
+      <input type="text" id="objectName" placeholder="Tên vật thể...">
+      <button onclick="saveDrawnObject()" class="chat-button">Lưu</button>
+    </div>
+  </div>
+
+  <script>
+    // Tải dữ liệu AI từ Local Storage nếu có
+    let aiData = JSON.parse(localStorage.getItem('aiData')) || {
+      "hi": "Hi there!",
+      "how are you?": "I'm just a bot, but I'm doing great!",
+      "what's your name?": "I am a learning AI."
+    };
+
+    // Lưu dữ liệu AI vào Local Storage
+    function saveAIData() {
+      localStorage.setItem('aiData', JSON.stringify(aiData));
+    }
+
+    // Gửi tin nhắn từ người dùng và trả lời của bot
+function sendMessage() {
+    const input = document.getElementById('chat-input').value.trim();
+    if (input === "") return;
+    const chatBox = document.getElementById('chat-box');
+
+    const userMessage = document.createElement('p');
+    userMessage.textContent = "User: " + input;
+    chatBox.appendChild(userMessage);
+
+    let response = "I don't understand that.";
+    const normalizedInput = input.toLowerCase();
+    if (aiData[normalizedInput]) {
+        // Lấy tất cả câu trả lời cho câu hỏi
+        const responses = aiData[normalizedInput];
+        if (Array.isArray(responses)) {
+            // Chọn ngẫu nhiên một câu trả lời
+            response = responses[Math.floor(Math.random() * responses.length)];
+        } else {
+            response = responses; // Trường hợp chỉ có một câu trả lời
+        }
+    }
+
+    const botMessage = document.createElement('p');
+    botMessage.textContent = "Bot: " + response;
+    chatBox.appendChild(botMessage);
+
+    document.getElementById('chat-input').value = '';
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+    // Thêm dữ liệu mới vào AI
+    function addTrainingData(newInput, newResponse) {
+      const normalizedInput = newInput.toLowerCase();
+      if (!aiData[normalizedInput]) {
+        aiData[normalizedInput] = newResponse;
+        saveAIData();
+        alert('Bot đã học được dữ liệu mới!');
+      } else {
+        alert('Bot đã biết câu trả lời cho câu hỏi này!');
+      }
+    }
+
+    // Huấn luyện bot với dữ liệu mới
+    function trainBot() {
+      const newInput = prompt("Nhập câu hỏi của bạn:");
+      if (newInput === null || newInput.trim() === "") return;
+      const newResponse = prompt("Nhập câu trả lời của bot:");
+      if (newResponse === null || newResponse.trim() === "") return;
+      addTrainingData(newInput.trim(), newResponse.trim());
+    }
+
+    // Tải xuống dữ liệu AI dưới dạng file JSON
+    function downloadAIData() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(aiData, null, 2));
+      const downloadAnchorNode = document.createElement('a');
+      downloadAnchorNode.setAttribute("href", dataStr);
+      downloadAnchorNode.setAttribute("download", "aiData.json");
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+    }
+
+    // Tải lên dữ liệu AI từ file JSON
+    function uploadAIData() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'application/json';
+      input.onchange = event => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const json = JSON.parse(e.target.result);
+            aiData = { ...aiData, ...json }; // Gộp dữ liệu mới với dữ liệu cũ
+            saveAIData();
+            alert('Bot đã học thêm dữ liệu từ file!');
+          } catch (error) {
+            alert('Đã xảy ra lỗi khi tải lên file JSON.');
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    }
+
+    // Tải lên tệp văn bản để huấn luyện toán
+    function uploadTextFile() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.txt';
+      input.onchange = event => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const text = e.target.result;
+          // Giả định mỗi dòng trong tệp văn bản là "câu hỏi: câu trả lời"
+          const lines = text.split('\n');
+          lines.forEach(line => {
+            const parts = line.split(':');
+            if (parts.length >= 2) {
+              const question = parts[0].trim();
+              const answer = parts.slice(1).join(':').trim();
+              addTrainingData(question, answer);
+            }
+          });
+          alert('Bot đã học được dữ liệu từ tệp văn bản!');
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    }
+
+    // Tải lên hình ảnh và gán tên cho vật thể
+    function uploadImage() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = event => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          // Hiển thị hình ảnh đã tải lên (có thể thêm xử lý nhận dạng hình ảnh tại đây)
+          const imageSrc = e.target.result;
+          // Mở modal vẽ và gán tên
+          openDrawModal(imageSrc);
+        };
+        reader.readAsDataURL(file);
+      };
+      input.click();
+    }
+
+    // Mở modal vẽ
+    function openDrawModal(imageSrc) {
+      const drawModal = document.getElementById('drawModal');
+      drawModal.style.display = 'block';
+      
+      const canvas = document.getElementById('drawCanvas');
+      const ctx = canvas.getContext('2d');
+      // Hiển thị hình ảnh lên canvas
+      const img = new Image();
+      img.onload = function() {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      };
+      img.src = imageSrc;
+    }
+
+    // Đóng modal
+    function closeModal() {
+      const modals = document.getElementsByClassName('modal');
+      for (let modal of modals) {
+        modal.style.display = 'none';
+      }
+      // Xóa nội dung canvas khi đóng
+      const canvas = document.getElementById('drawCanvas');
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+
+    // Vẽ trên canvas
+    const canvas = document.getElementById('drawCanvas');
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      let drawing = false;
+
+      canvas.addEventListener('mousedown', () => { drawing = true; });
+      canvas.addEventListener('mouseup', () => { drawing = false; ctx.beginPath(); });
+      canvas.addEventListener('mousemove', draw);
+
+      function draw(event) {
+        if (!drawing) return;
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = 'red';
+        ctx.lineTo(event.clientX - canvas.getBoundingClientRect().left, event.clientY - canvas.getBoundingClientRect().top);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(event.clientX - canvas.getBoundingClientRect().left, event.clientY - canvas.getBoundingClientRect().top);
+      }
+    }
+
+    // Lưu vật thể đã vẽ và tên
+    function saveDrawnObject() {
+      const objectName = document.getElementById('objectName').value.trim();
+      if (objectName === "") {
+        alert('Vui lòng nhập tên vật thể.');
+        return;
+      }
+      // Lưu tên vật thể vào aiData với khóa là tên vật thể
+      addTrainingData(objectName, `Bạn đã vẽ: ${objectName}`);
+      alert(`Vật thể "${objectName}" đã được lưu vào bộ nhớ AI!`);
+      closeModal();
+    }
+
+    // Xem bộ nhớ AI
+    function viewAIMemory() {
+      const modal = document.getElementById('aiMemoryModal');
+      const tableBody = document.querySelector('#aiMemoryTable tbody');
+      tableBody.innerHTML = ''; // Xóa nội dung cũ
+
+      for (let question in aiData) {
+        const response = aiData[question];
+        const row = document.createElement('tr');
+
+        const questionCell = document.createElement('td');
+        questionCell.textContent = question;
+        row.appendChild(questionCell);
+
+        const responseCell = document.createElement('td');
+        responseCell.textContent = response;
+        row.appendChild(responseCell);
+
+        const actionCell = document.createElement('td');
+
+        const editButton = document.createElement('button');
+        editButton.textContent = 'Chỉnh sửa';
+        editButton.className = 'action-button';
+        editButton.onclick = () => editAIMemory(question);
+        actionCell.appendChild(editButton);
+
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = 'Xoá';
+        deleteButton.className = 'action-button delete';
+        deleteButton.onclick = () => deleteAIMemory(question);
+        actionCell.appendChild(deleteButton);
+
+        row.appendChild(actionCell);
+        tableBody.appendChild(row);
+      }
+
+      modal.style.display = 'block';
+    }
+
+    // Chỉnh sửa bộ nhớ AI
+    function editAIMemory(question) {
+      const newQuestion = prompt("Chỉnh sửa câu hỏi:", question);
+      if (newQuestion === null || newQuestion.trim() === "") return;
+      const newResponse = prompt("Chỉnh sửa câu trả lời:", aiData[question]);
+      if (newResponse === null || newResponse.trim() === "") return;
+
+      // Xóa câu hỏi cũ và thêm câu hỏi mới
+      delete aiData[question];
+      addTrainingData(newQuestion.trim(), newResponse.trim());
+      viewAIMemory();
+    }
+
+    // Xoá bộ nhớ AI
+    function deleteAIMemory(question) {
+      if (confirm(`Bạn có chắc chắn muốn xoá câu hỏi: "${question}"?`)) {
+        delete aiData[question];
+        saveAIData();
+        alert('Đã xoá câu hỏi và trả lời!');
+        viewAIMemory();
+      }
+    }
+
+    // Xử lý khi nhấn ngoài modal để đóng
+    window.onclick = function(event) {
+      const modals = document.getElementsByClassName('modal');
+      for (let modal of modals) {
+        if (event.target == modal) {
+          modal.style.display = 'none';
+          // Xóa nội dung canvas khi đóng
+          const canvas = document.getElementById('drawCanvas');
+          if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+          }
+        }
+      }
+    }
+
+    // Xử lý nhận dạng hình ảnh (Giới hạn - yêu cầu xử lý phía client)
+    // Bạn có thể tích hợp TensorFlow.js hoặc một thư viện nhận dạng hình ảnh khác tại đây.
+    // Tuy nhiên, do tính phức tạp và giới hạn của phía client, ví dụ này sẽ chỉ lưu tên vật thể do người dùng nhập.
+function calculateExpression(expression) {
+    try {
+        // Chỉ cho phép các phép toán cơ bản
+        const sanitizedExpression = expression.replace(/[^0-9+\-*/(). ]/g, '');
+        return eval(sanitizedExpression);
+    } catch (error) {
+        return "Có lỗi xảy ra khi tính toán.";
+    }
+}
+function addGrammarRule() {
+    const input = prompt("Nhập cấu trúc ngữ pháp (ví dụ: 'câu hỏi: câu trả lời 1, câu trả lời 2')");
+    if (input) {
+        const [question, answers] = input.split(':');
+        const answersArray = answers.split(',').map(ans => ans.trim());
+        aiData[question.trim().toLowerCase()] = answersArray;
+        saveAIData();
+        alert("Cấu trúc ngữ pháp đã được thêm!");
+    }
+}
+
+  </script>
+</body>
+</html>
