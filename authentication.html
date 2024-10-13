@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xác thực</title>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+</head>
+<body>
+    <h1>Xác thực người dùng</h1>
+    <form id="authForm">
+        <div class="g-recaptcha" data-sitekey="6LeaKmAqAAAAAHMqcHgrkUj8juX58BEgUw5UNw-I"></div>
+        <button type="submit">Xác thực</button>
+    </form>
+
+    <script>
+        document.getElementById('authForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const recaptchaResponse = grecaptcha.getResponse();
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirectUrl = urlParams.get('url');
+            
+            if (recaptchaResponse) {
+                // Gửi yêu cầu xác thực đến server (có thể sử dụng AJAX nếu cần)
+                // Nếu xác thực thành công:
+                window.location.href = `${redirectUrl}?status=true`;
+            } else {
+                alert('Vui lòng xác thực bằng reCAPTCHA.');
+            }
+        });
+    </script>
+</body>
+</html>
