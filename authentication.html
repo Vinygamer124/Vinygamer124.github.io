@@ -8,26 +8,19 @@
 </head>
 <body>
     <h1>Xác thực người dùng</h1>
-    <form id="authForm">
-        <div class="g-recaptcha" data-sitekey="6LeaKmAqAAAAAHMqcHgrkUj8juX58BEgUw5UNw-I"></div>
-        <button type="submit">Xác thực</button>
-    </form>
+    <div class="g-recaptcha" data-sitekey="6LeaKmAqAAAAAHMqcHgrkUj8juX58BEgUw5UNw-I" data-callback="onRecaptchaSuccess"></div>
 
     <script>
-        document.getElementById('authForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const recaptchaResponse = grecaptcha.getResponse();
+        function onRecaptchaSuccess(token) {
+            // Lấy URL từ tham số trên trang
             const urlParams = new URLSearchParams(window.location.search);
             const redirectUrl = urlParams.get('url');
-            
-            if (recaptchaResponse) {
-                // Gửi yêu cầu xác thực đến server (có thể sử dụng AJAX nếu cần)
-                // Nếu xác thực thành công:
+
+            if (redirectUrl) {
+                // Chuyển hướng đến trang người dùng với trạng thái xác thực thành công
                 window.location.href = `${redirectUrl}?status=true`;
-            } else {
-                alert('Vui lòng xác thực bằng reCAPTCHA.');
             }
-        });
+        }
     </script>
 </body>
 </html>
