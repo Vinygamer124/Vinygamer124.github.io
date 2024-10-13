@@ -7,19 +7,449 @@
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body>
-    <h1>Xác thực người dùng</h1>
-    <div class="g-recaptcha" data-sitekey="6LeaKmAqAAAAAHMqcHgrkUj8juX58BEgUw5UNw-I" data-callback="onRecaptchaSuccess"></div>
+    <h1 id="title"></h1>
+    
+    <div id="message"></div> <!-- Thông báo sẽ hiển thị ở đây -->
+    <div id="instructions">
+        <p id="instruction1"></p>
+        <p id="instruction2"></p>
+    </div>
+    
+    <div class="g-recaptcha" data-sitekey="6LeaKmAqAAAAAHMqcHgrkUj8juX58BEgUw5UNw-I" data-callback="onRecaptchaSuccess" data-expired-callback="onRecaptchaExpired"></div>
 
     <script>
-        function onRecaptchaSuccess(token) {
-            // Lấy URL từ tham số trên trang
-            const urlParams = new URLSearchParams(window.location.search);
-            const redirectUrl = urlParams.get('url');
+        // Đối tượng chứa thông điệp đa ngôn ngữ
+        const messages = {
+    'en': {
+        title: 'User Verification',
+        message: 'needs to assess your security.',
+        instruction1: 'Please complete the verification to proceed to the requested page.',
+        instruction2: 'Click the reCAPTCHA checkbox below to verify that you are not a robot.',
+        recaptchaExpired: 'reCAPTCHA has expired. Please try again.'
+    },
+    'es': {
+        title: 'Verificación de Usuario',
+        message: 'necesita evaluar su seguridad.',
+        instruction1: 'Por favor, complete la verificación para continuar a la página solicitada.',
+        instruction2: 'Haga clic en la casilla de verificación reCAPTCHA a continuación para verificar que no es un robot.',
+        recaptchaExpired: 'El reCAPTCHA ha caducado. Por favor, inténtelo de nuevo.'
+    },
+    'fr': {
+        title: 'Vérification de l\'Utilisateur',
+        message: 'doit évaluer votre sécurité.',
+        instruction1: 'Veuillez compléter la vérification pour continuer vers la page demandée.',
+        instruction2: 'Cliquez sur la case reCAPTCHA ci-dessous pour vérifier que vous n\'êtes pas un robot.',
+        recaptchaExpired: 'Le reCAPTCHA a expiré. Veuillez réessayer.'
+    },
+    'de': {
+        title: 'Benutzerverifizierung',
+        message: 'muss Ihre Sicherheit überprüfen.',
+        instruction1: 'Bitte vervollständigen Sie die Verifizierung, um zur gewünschten Seite zu gelangen.',
+        instruction2: 'Klicken Sie auf das reCAPTCHA-Kontrollkästchen unten, um zu bestätigen, dass Sie kein Roboter sind.',
+        recaptchaExpired: 'reCAPTCHA ist abgelaufen. Bitte versuchen Sie es erneut.'
+    },
+    'zh': {
+        title: '用户验证',
+        message: '需要评估您的安全性。',
+        instruction1: '请完成验证以继续访问请求的页面。',
+        instruction2: '点击下面的reCAPTCHA复选框，验证您不是机器人。',
+        recaptchaExpired: 'reCAPTCHA已过期。请再试一次。'
+    },
+    'ja': {
+        title: 'ユーザー認証',
+        message: 'はあなたのセキュリティを評価する必要があります。',
+        instruction1: 'リクエストされたページに進むために、認証を完了してください。',
+        instruction2: '下のreCAPTCHAチェックボックスをクリックして、ロボットではないことを確認してください。',
+        recaptchaExpired: 'reCAPTCHAの有効期限が切れました。もう一度お試しください。'
+    },
+    'ru': {
+        title: 'Проверка Пользователя',
+        message: 'нужно оценить вашу безопасность.',
+        instruction1: 'Пожалуйста, завершите проверку, чтобы перейти на запрашиваемую страницу.',
+        instruction2: 'Нажмите на флажок reCAPTCHA ниже, чтобы подтвердить, что вы не робот.',
+        recaptchaExpired: 'reCAPTCHA истек. Пожалуйста, попробуйте снова.'
+    },
+    'pt': {
+        title: 'Verificação de Usuário',
+        message: 'precisa avaliar sua segurança.',
+        instruction1: 'Conclua a verificação para prosseguir para a página solicitada.',
+        instruction2: 'Clique na caixa de seleção reCAPTCHA abaixo para verificar que você não é um robô.',
+        recaptchaExpired: 'O reCAPTCHA expirou. Tente novamente.'
+    },
+    'it': {
+        title: 'Verifica dell\'Utente',
+        message: 'deve valutare la tua sicurezza.',
+        instruction1: 'Completa la verifica per procedere alla pagina richiesta.',
+        instruction2: 'Clicca sulla casella di controllo reCAPTCHA qui sotto per verificare che non sei un robot.',
+        recaptchaExpired: 'Il reCAPTCHA è scaduto. Si prega di riprovare.'
+    },
+    'ar': {
+        title: 'التحقق من المستخدم',
+        message: 'يحتاج إلى تقييم أمانك.',
+        instruction1: 'يرجى إكمال التحقق للمتابعة إلى الصفحة المطلوبة.',
+        instruction2: 'انقر على مربع reCAPTCHA أدناه للتحقق من أنك لست روبوتًا.',
+        recaptchaExpired: 'انتهت صلاحية reCAPTCHA. حاول مرة أخرى.'
+    },
+    'ko': {
+        title: '사용자 확인',
+        message: '보안 평가가 필요합니다.',
+        instruction1: '요청한 페이지로 이동하려면 인증을 완료하세요.',
+        instruction2: 'reCAPTCHA 확인란을 클릭하여 로봇이 아님을 확인하세요.',
+        recaptchaExpired: 'reCAPTCHA가 만료되었습니다. 다시 시도해 주세요.'
+    },
+    'hi': {
+        title: 'उपयोगकर्ता सत्यापन',
+        message: 'आपकी सुरक्षा का आकलन करना है।',
+        instruction1: 'कृपया सत्यापन पूरा करें ताकि आप अनुरोधित पृष्ठ पर जा सकें।',
+        instruction2: 'नीचे दिए गए reCAPTCHA चेकबॉक्स पर क्लिक करें ताकि यह सुनिश्चित किया जा सके कि आप रोबोट नहीं हैं।',
+        recaptchaExpired: 'reCAPTCHA समाप्त हो गया है। कृपया पुनः प्रयास करें।'
+    },
+    'pl': {
+        title: 'Weryfikacja Użytkownika',
+        message: 'musi ocenić twoje bezpieczeństwo.',
+        instruction1: 'Proszę zakończyć weryfikację, aby przejść do żądanej strony.',
+        instruction2: 'Kliknij poniższe pole reCAPTCHA, aby potwierdzić, że nie jesteś robotem.',
+        recaptchaExpired: 'reCAPTCHA wygasło. Proszę spróbować ponownie.'
+    },
+    'nl': {
+        title: 'Gebruikersverificatie',
+        message: 'moet uw beveiliging beoordelen.',
+        instruction1: 'Voltooi de verificatie om door te gaan naar de gevraagde pagina.',
+        instruction2: 'Klik op het reCAPTCHA selectievakje hieronder om te bevestigen dat u geen robot bent.',
+        recaptchaExpired: 'reCAPTCHA is verlopen. Probeer het opnieuw.'
+    },
+    'tr': {
+        title: 'Kullanıcı Doğrulama',
+        message: 'güvenliğinizi değerlendirmesi gerekiyor.',
+        instruction1: 'İstediğiniz sayfaya devam etmek için lütfen doğrulamayı tamamlayın.',
+        instruction2: 'Robot olmadığınızı doğrulamak için aşağıdaki reCAPTCHA onay kutusuna tıklayın.',
+        recaptchaExpired: 'reCAPTCHA süresi doldu. Lütfen tekrar deneyin.'
+    },
+    'vi': {
+        title: 'Xác thực Người dùng',
+        message: 'cần đánh giá bảo mật của bạn.',
+        instruction1: 'Vui lòng hoàn thành xác thực để tiếp tục đến trang yêu cầu.',
+        instruction2: 'Nhấp vào hộp xác nhận reCAPTCHA bên dưới để xác thực rằng bạn không phải là robot.',
+        recaptchaExpired: 'reCAPTCHA đã hết hạn. Vui lòng thử lại.'
+    },
+    'th': {
+        title: 'การตรวจสอบผู้ใช้',
+        message: 'ต้องประเมินความปลอดภัยของคุณ',
+        instruction1: 'กรุณาทำการตรวจสอบเพื่อไปยังหน้าที่ต้องการ',
+        instruction2: 'คลิกที่ช่อง reCAPTCHA ด้านล่างเพื่อยืนยันว่าคุณไม่ใช่หุ่นยนต์',
+        recaptchaExpired: 'reCAPTCHA หมดอายุแล้ว กรุณาลองอีกครั้ง'
+    },
+    'sv': {
+        title: 'Användarverifiering',
+        message: 'behöver bedöma din säkerhet.',
+        instruction1: 'Vänligen slutför verifieringen för att fortsätta till den begärda sidan.',
+        instruction2: 'Klicka på reCAPTCHA-rutan nedan för att verifiera att du inte är en robot.',
+        recaptchaExpired: 'reCAPTCHA har löpt ut. Försök igen.'
+    },
+    'da': {
+        title: 'Brugergodkendelse',
+        message: 'skal vurdere din sikkerhed.',
+        instruction1: 'Fuldfør venligst verifikationen for at fortsætte til den ønskede side.',
+        instruction2: 'Klik på reCAPTCHA-afkrydsningsfeltet nedenfor for at bekræfte, at du ikke er en robot.',
+        recaptchaExpired: 'reCAPTCHA er udløbet. Prøv igen.'
+    },
+    'no': {
+        title: 'Brukerverifisering',
+        message: 'må vurdere sikkerheten din.',
+        instruction1: 'Fullfør verifiseringen for å gå videre til den forespurte siden.',
+        instruction2: 'Klikk på reCAPTCHA-boksen nedenfor for å bekrefte at du ikke er en robot.',
+        recaptchaExpired: 'reCAPTCHA har utløpt. Vennligst prøv igjen.'
+    },
+    'fi': {
+        title: 'Käyttäjän Vahvistus',
+        message: 'tarvitsee arvioida turvallisuutesi.',
+        instruction1: 'Suorita vahvistus jatkaaksesi pyydetylle sivulle.',
+        instruction2: 'Klikkaa alla olevaa reCAPTCHA-ruutua vahvistaaksesi, ettet ole robotti.',
+        recaptchaExpired: 'reCAPTCHA on vanhentunut. Yritä uudelleen.'
+    },
+    'cs': {
+        title: 'Ověření Uživatelů',
+        message: 'potřebuje zhodnotit vaše zabezpečení.',
+        instruction1: 'Pro pokračování na požadovanou stránku prosím dokončete ověření.',
+        instruction2: 'Klikněte na políčko reCAPTCHA níže, abyste potvrdili, že nejste robot.',
+        recaptchaExpired: 'Platnost reCAPTCHA vypršela. Zkuste to znovu.'
+    },
+    'hu': {
+        title: 'Felhasználó Ellenőrzése',
+        message: 'értékelni kell a biztonságát.',
+        instruction1: 'Kérem, fejezze be az ellenőrzést, hogy folytathassa a kért oldalt.',
+        instruction2: 'Kattintson az alábbi reCAPTCHA jelölőnégyzetre, hogy igazolja, nem robot.',
+        recaptchaExpired: 'A reCAPTCHA lejárt. Kérem, próbálja újra.'
+    },
+    'ro': {
+        title: 'Verificarea Utilizatorului',
+        message: 'trebuie să vă evalueze securitatea.',
+        instruction1: 'Vă rugăm să finalizați verificarea pentru a continua la pagina solicitată.',
+        instruction2: 'Faceți clic pe caseta reCAPTCHA de mai jos pentru a verifica că nu sunteți un robot.',
+        recaptchaExpired: 'reCAPTCHA a expirat. Vă rugăm să încercați din nou.'
+    },
+    'sk': {
+        title: 'Overenie Používateľa',
+        message: 'musí posúdiť vašu bezpečnosť.',
+        instruction1: 'Dokončite overenie, aby ste pokračovali na požadovanú stránku.',
+        instruction2: 'Kliknite na políčko reCAPTCHA nižšie, aby ste overili, že nie ste robot.',
+        recaptchaExpired: 'Platnosť reCAPTCHA vypršala. Skúste to znova.'
+    },
+    'he': {
+        title: 'אימות משתמש',
+        message: 'צריך להעריך את האבטחה שלך.',
+        instruction1: 'אנא השלם את האימות כדי להמשיך לעמוד המבוקש.',
+        instruction2: 'לחץ על תיבת הסימון reCAPTCHA למטה כדי לאמת שאינך רובוט.',
+        recaptchaExpired: 'תוקף reCAPTCHA פג. נסה שוב.'
+    },
+    'bg': {
+        title: 'Потребителска Проверка',
+        message: 'трябва да оцени вашата сигурност.',
+        instruction1: 'Моля, завършете проверката, за да продължите към заявената страница.',
+        instruction2: 'Кликнете върху квадратчето reCAPTCHA по-долу, за да потвърдите, че не сте робот.',
+        recaptchaExpired: 'reCAPTCHA е изтекъл. Моля, опитайте отново.'
+    },
+'sl': {
+    title: 'Preverjanje Uporabnika',
+    message: 'mora oceniti vašo varnost.',
+    instruction1: 'Dokončajte preverjanje, da nadaljujete na zahtevano stran.',
+    instruction2: 'Kliknite potrditveno polje reCAPTCHA spodaj, da potrdite, da niste robot.',
+    recaptchaExpired: 'reCAPTCHA je potekel. Poskusite znova.'
+},
+    'et': {
+        title: 'Kasutaja Kinnitus',
+        message: 'peab hindama teie turvalisust.',
+        instruction1: 'Palun lõpetage kinnitamine, et jätkata soovitud leheküljele.',
+        instruction2: 'Kinnitamaks, et te pole robot, klõpsake allolevat reCAPTCHA märkeruutu.',
+        recaptchaExpired: 'reCAPTCHA on aegunud. Palun proovige uuesti.'
+    },
+    'lv': {
+        title: 'Lietotāja Pārbaude',
+        message: 'jānovērtē jūsu drošība.',
+        instruction1: 'Lūdzu, pabeidziet pārbaudi, lai turpinātu uz pieprasīto lapu.',
+        instruction2: 'Noklikšķiniet uz zemāk esošās reCAPTCHA izvēles rūtiņas, lai pārbaudītu, vai neesat robots.',
+        recaptchaExpired: 'reCAPTCHA derīguma termiņš ir beidzies. Lūdzu, mēģiniet vēlreiz.'
+    },
+    'lt': {
+        title: 'Naudotojo Patvirtinimas',
+        message: 'turi įvertinti jūsų saugumą.',
+        instruction1: 'Prašome baigti patvirtinimą, kad galėtumėte tęsti norimą puslapį.',
+        instruction2: 'Spustelėkite toliau esantį reCAPTCHA žymimąjį laukelį, kad patvirtintumėte, jog nesate robotas.',
+        recaptchaExpired: 'reCAPTCHA galiojimas baigėsi. Bandykite dar kartą.'
+    },
+    'uk': {
+        title: 'Перевірка Користувача',
+        message: 'повинен оцінити вашу безпеку.',
+        instruction1: 'Будь ласка, завершіть перевірку, щоб продовжити на запитану сторінку.',
+        instruction2: 'Натисніть на поле reCAPTCHA нижче, щоб підтвердити, що ви не робот.',
+        recaptchaExpired: 'Термін дії reCAPTCHA закінчився. Спробуйте ще раз.'
+    },
+    'ml': {
+        title: 'ഉപയോക്തൃ പരിശോധന',
+        message: 'നിങ്ങളുടെ സുരക്ഷയെന്നു വിലയിരുത്തണം.',
+        instruction1: 'അഭ്യർത്ഥിച്ച പേജിലേക്ക് മുന്നോട്ട് പോകുന്നതിന് ദയവായി പരിശോധന പൂർത്തിയാക്കുക.',
+        instruction2: 'നിങ്ങൾ റോബോട്ടല്ലെന്ന് സ്ഥിരീകരിക്കാൻ താഴെ reCAPTCHA ബോക്സിൽ ക്ലിക്ക് ചെയ്യുക.',
+        recaptchaExpired: 'reCAPTCHA കാലാവധി കഴിഞ്ഞിരിക്കുന്നു. വീണ്ടും ശ്രമിക്കുക.'
+    },
+    'ta': {
+        title: 'பயனர் சரிபார்ப்பு',
+        message: 'உங்கள் பாதுகாப்பை மதிப்பீடு செய்ய வேண்டும்.',
+        instruction1: 'கோரப்பட்ட பக்கத்திற்கு தொடர சரிபார்ப்பை முடிக்கவும்.',
+        instruction2: 'நீங்கள் ரோபோ அல்ல என்பதை உறுதிப்படுத்த கீழே உள்ள reCAPTCHA செக் பெட்டியை கிளிக் செய்யவும்.',
+        recaptchaExpired: 'reCAPTCHA காலாவதி ஆகிவிட்டது. மீண்டும் முயற்சிக்கவும்.'
+    },
+    'te': {
+        title: 'వాడుకరి ధృవీకరణ',
+        message: 'మీ భద్రతను అంచనా వేయాలి.',
+        instruction1: 'అభ్యర్థించిన పేజీకి కొనసాగడానికి దయచేసి ధృవీకరణను పూర్తి చేయండి.',
+        instruction2: 'మీరు రోబోట్ కాకపోవడం నిర్ధారించడానికి దిగువన ఉన్న reCAPTCHA చెక్‌బాక్స్‌పై క్లిక్ చేయండి.',
+        recaptchaExpired: 'reCAPTCHA గడువు ముగిసింది. దయచేసి మరలా ప్రయత్నించండి.'
+    },
+    'kn': {
+        title: 'ಬಳಕೆದಾರ ದೃಢೀಕರಣ',
+        message: 'ನಿಮ್ಮ ಭದ್ರತೆಯನ್ನು ಅಂದಾಜಿಸಬೇಕು.',
+        instruction1: 'ಅಭ್ಯರ್ಥಿತ ಪುಟಕ್ಕೆ ಮುಂದುವರಿಯಲು ದೃಢೀಕರಣವನ್ನು ಪೂರ್ಣಗೊಳಿಸಿ.',
+        instruction2: 'ನೀವು ರೋಬೊಟ್ ಅಲ್ಲ ಎಂಬುದನ್ನು ದೃಢೀಕರಿಸಲು ಕೆಳಗಿನ reCAPTCHA ಚೆಕ್‌ಬಾಕ್ಸ್ ಕ್ಲಿಕ್ ಮಾಡಿ.',
+        recaptchaExpired: 'reCAPTCHA ಅವಧಿ ಮೀರಿದೆ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.'
+    },
+    'bn': {
+        title: 'ব্যবহারকারীর যাচাইকরণ',
+        message: 'আপনার নিরাপত্তা মূল্যায়ন করতে হবে।',
+        instruction1: 'অনুরোধকৃত পৃষ্ঠায় যেতে যাচাইকরণটি সম্পূর্ণ করুন।',
+        instruction2: 'আপনি রোবট নন তা নিশ্চিত করতে নিচের reCAPTCHA চেকবক্সে ক্লিক করুন।',
+        recaptchaExpired: 'reCAPTCHA এর মেয়াদ শেষ হয়ে গেছে। অনুগ্রহ করে আবার চেষ্টা করুন।'
+    },
+    'sw': {
+        title: 'Uhakiki wa Mtumiaji',
+        message: 'inahitajika kutathmini usalama wako.',
+        instruction1: 'Tafadhali kamilisha uthibitishaji ili kuendelea kwenye ukurasa ulioombwa.',
+        instruction2: 'Bonyeza kisanduku cha hundi cha reCAPTCHA hapa chini ili kuthibitisha kuwa wewe si roboti.',
+        recaptchaExpired: 'reCAPTCHA imeisha muda wake. Tafadhali jaribu tena.'
+    },
+    'sq': {
+        title: 'Verifikimi i Përdoruesit',
+        message: 'duhet të vlerësojë sigurinë tuaj.',
+        instruction1: 'Ju lutemi përfundoni verifikimin për të vazhduar në faqen e kërkuar.',
+        instruction2: 'Klikoni në kutinë reCAPTCHA më poshtë për të verifikuar që nuk jeni robot.',
+        recaptchaExpired: 'reCAPTCHA ka skaduar. Ju lutemi provoni përsëri.'
+    },
+    'sr': {
+        title: 'Провера Корисника',
+        message: 'мора да процени вашу безбедност.',
+        instruction1: 'Завршите проверу да бисте наставили на тражену страницу.',
+        instruction2: 'Кликните на поље за потврду reCAPTCHA испод да бисте потврдили да нисте робот.',
+        recaptchaExpired: 'Важност reCAPTCHA је истекла. Покушајте поново.'
+    },
+    'cy': {
+        title: 'Gwirio Defnyddiwr',
+        message: 'mae angen asesu eich diogelwch.',
+        instruction1: 'Cwblhewch y dilysu i barhau i\'r dudalen ofynnol.',
+        instruction2: 'Cliciwch ar y blwch ticio reCAPTCHA isod i gadarnhau nad ydych yn robot.',
+        recaptchaExpired: 'Mae reCAPTCHA wedi dod i ben. Ceisiwch eto.'
+    },
+    'is': {
+        title: 'Notendastaðfesting',
+        message: 'þarf að meta öryggi þitt.',
+        instruction1: 'Vinsamlegast ljúktu við sannvottunina til að halda áfram á óska síðuna.',
+        instruction2: 'Smelltu á reCAPTCHA gátreitinn hér að neðan til að staðfesta að þú sért ekki vélmenni.',
+        recaptchaExpired: 'reCAPTCHA er útrunnin. Reyndu aftur.'
+    },
+    'mt': {
+        title: 'Verifika tal-Utent',
+        message: 'jeħtieġ tivvaluta s-sigurtà tiegħek.',
+        instruction1: 'Jekk jogħġbok temm il-verifika biex tkompli għall-paġna mitluba.',
+        instruction2: 'Ikklikkja l-kaxxa reCAPTCHA hawn taħt biex tivverifika li m’intix robot.',
+        recaptchaExpired: 'reCAPTCHA skada. Jekk jogħġbok erġa pprova.'
+    },
+    'hy': {
+        title: 'Օգտագործողի Հաստատում',
+        message: 'պետք է գնահատի ձեր անվտանգությունը.',
+        instruction1: 'Խնդրում ենք ավարտել ստուգումը՝ պահանջված էջը շարունակելու համար:',
+        instruction2: 'Սեղմեք reCAPTCHA վանդակի վրա՝ հաստատելու համար, որ ռոբոտ չեք:',
+        recaptchaExpired: 'reCAPTCHA-ի ժամկետն ավարտվել է: Խնդրում ենք կրկին փորձել:'
+    },
+    'az': {
+        title: 'İstifadəçi Təsdiqləmə',
+        message: 'təhlükəsizliyinizi qiymətləndirməlidir.',
+        instruction1: 'Sorğulanan səhifəyə davam etmək üçün təsdiqi tamamlayın.',
+        instruction2: 'Robot olmadığınızı təsdiqləmək üçün aşağıdakı reCAPTCHA qutusuna klikləyin.',
+        recaptchaExpired: 'reCAPTCHA müddəti bitmişdir. Yenidən cəhd edin.'
+    },
+    'km': {
+        title: 'ការផ្ទៀងផ្ទាត់អ្នកប្រើប្រាស់',
+        message: 'ត្រូវតែវាយតម្លៃសុវត្ថិភាពរបស់អ្នក។',
+        instruction1: 'សូមបំពេញការផ្ទៀងផ្ទាត់ដើម្បីបន្តទៅកាន់ទំព័រដែលបានស្នើសុំ។',
+        instruction2: 'ចុចប្រអប់ reCAPTCHA ខាងក្រោម ដើម្បីផ្ទៀងផ្ទាត់ថាអ្នកមិនមែនជាមនុស្សយន្ត។',
+        recaptchaExpired: 'reCAPTCHA ផុតកំណត់។ សូមព្យាយាមម្ដងទៀត។'
+    },
+    'la': {
+        title: 'Confirmatio Usoris',
+        message: 'securitatem tuam aestimare debet.',
+        instruction1: 'Perge rogatus paginam ut confirmationem perficias.',
+        instruction2: 'Preme in capsulam reCAPTCHA infra ut confirmes te non esse machinam.',
+        recaptchaExpired: 'reCAPTCHA exspiravit. Iterum conare.'
+    },
+    'fa': {
+        title: 'تأیید کاربر',
+        message: 'باید امنیت شما را ارزیابی کند.',
+        instruction1: 'لطفاً تأیید را کامل کنید تا به صفحه درخواستی ادامه دهید.',
+        instruction2: 'برای تأیید اینکه شما ربات نیستید، روی کادر reCAPTCHA در زیر کلیک کنید.',
+        recaptchaExpired: 'reCAPTCHA منقضی شده است. لطفا دوباره امتحان کنید.'
+    },
+    'yi': {
+        title: 'ניצער פאַריפיצירונג',
+        message: 'דארף באשיצן אייער זיכערהייט.',
+        instruction1: 'ביטע ענדיגן די פאַריפיצירונג צו פאָרזעצן צו דער פארלאנגטער זייַט.',
+        instruction2: 'דריקט אויף די reCAPTCHA קעסטל אונטן צו באַשטעטיקן אַז איר זענט נישט א ראָבאָט.',
+        recaptchaExpired: 'reCAPTCHA האט אויסגעלאפן. פּרוּווט ווידער.'
+    },
+    'xh': {
+        title: 'Ukuqinisekiswa Komsebenzisi',
+        message: 'kufuneka kuhlolwe ukhuseleko lwakho.',
+        instruction1: 'Nceda ugqibe ukuqinisekiswa ukuze uqhubeke uye kwiphepha eliceliweyo.',
+        instruction2: 'Cofa ibhokisi ye-reCAPTCHA engezantsi ukuqinisekisa ukuba awusiye irobhothi.',
+        recaptchaExpired: 'reCAPTCHA iphelelwe lixesha. Nceda uzame kwakhona.'
+    },
+};
 
+        // Phát hiện ngôn ngữ trình duyệt
+        const userLang = navigator.language || navigator.userLanguage; 
+const lang = 
+  userLang.startsWith('vi') ? 'vi' :
+  userLang.startsWith('en') ? 'en' :
+  userLang.startsWith('es') ? 'es' :
+  userLang.startsWith('fr') ? 'fr' :
+  userLang.startsWith('de') ? 'de' :
+  userLang.startsWith('zh') ? 'zh' :
+  userLang.startsWith('ja') ? 'ja' :
+  userLang.startsWith('ru') ? 'ru' :
+  userLang.startsWith('pt') ? 'pt' :
+  userLang.startsWith('it') ? 'it' :
+  userLang.startsWith('ar') ? 'ar' :
+  userLang.startsWith('ko') ? 'ko' :
+  userLang.startsWith('hi') ? 'hi' :
+  userLang.startsWith('pl') ? 'pl' :
+  userLang.startsWith('nl') ? 'nl' :
+  userLang.startsWith('tr') ? 'tr' :
+  userLang.startsWith('th') ? 'th' :
+  userLang.startsWith('sv') ? 'sv' :
+  userLang.startsWith('da') ? 'da' :
+  userLang.startsWith('no') ? 'no' :
+  userLang.startsWith('fi') ? 'fi' :
+  userLang.startsWith('cs') ? 'cs' :
+  userLang.startsWith('hu') ? 'hu' :
+  userLang.startsWith('ro') ? 'ro' :
+  userLang.startsWith('sk') ? 'sk' :
+  userLang.startsWith('he') ? 'he' :
+  userLang.startsWith('bg') ? 'bg' :
+  userLang.startsWith('sl') ? 'sl' :
+  userLang.startsWith('et') ? 'et' :
+  userLang.startsWith('lv') ? 'lv' :
+  userLang.startsWith('lt') ? 'lt' :
+  userLang.startsWith('uk') ? 'uk' :
+  userLang.startsWith('ml') ? 'ml' :
+  userLang.startsWith('ta') ? 'ta' :
+  userLang.startsWith('te') ? 'te' :
+  userLang.startsWith('kn') ? 'kn' :
+  userLang.startsWith('bn') ? 'bn' :
+  userLang.startsWith('sw') ? 'sw' :
+  userLang.startsWith('sq') ? 'sq' :
+  userLang.startsWith('sr') ? 'sr' :
+  userLang.startsWith('cy') ? 'cy' :
+  userLang.startsWith('is') ? 'is' :
+  userLang.startsWith('mt') ? 'mt' :
+  userLang.startsWith('hy') ? 'hy' :
+  userLang.startsWith('az') ? 'az' :
+  userLang.startsWith('km') ? 'km' :
+  userLang.startsWith('la') ? 'la' :
+  userLang.startsWith('fa') ? 'fa' :
+  userLang.startsWith('yi') ? 'yi' :
+  userLang.startsWith('xh') ? 'xh' :
+  'en'; // Mặc định là tiếng Anh nếu không phải tiếng Việt
+
+        // Cập nhật thông điệp dựa trên ngôn ngữ
+        document.getElementById('title').innerText = messages[lang].title;
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirectUrl = urlParams.get('url');
+
+        if (redirectUrl) {
+            document.getElementById('message').innerText = `${redirectUrl} ${messages[lang].message}`;
+        }
+
+        document.getElementById('instruction1').innerText = messages[lang].instruction1;
+        document.getElementById('instruction2').innerText = messages[lang].instruction2;
+
+        function onRecaptchaSuccess(token) {
             if (redirectUrl) {
                 // Chuyển hướng đến trang người dùng với trạng thái xác thực thành công
                 window.location.href = `${redirectUrl}?status=true`;
             }
+        }
+
+        function onRecaptchaExpired() {
+            // Hiển thị thông báo khi reCAPTCHA hết hạn
+            document.getElementById('message').innerText = messages[lang].recaptchaExpired;
         }
     </script>
 </body>
