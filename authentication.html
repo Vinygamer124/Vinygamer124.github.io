@@ -451,6 +451,23 @@ const lang =
             // Hiển thị thông báo khi reCAPTCHA hết hạn
             document.getElementById('message').innerText = messages[lang].recaptchaExpired;
         }
+        function checkUrlParameter() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const redirectUrl = urlParams.get('url');
+
+    if (!redirectUrl) {
+        // Ẩn tất cả các phần tử khác và hiển thị thông báo
+        document.body.innerHTML = '<h1>Website not available</h1>';
+    } else {
+        // Cập nhật thông điệp dựa trên ngôn ngữ nếu có URL
+        document.getElementById('message').innerText = `${redirectUrl} ${messages[lang].message}`;
+        document.getElementById('instruction1').innerText = messages[lang].instruction1;
+        document.getElementById('instruction2').innerText = messages[lang].instruction2;
+    }
+}
+
+// Gọi hàm khi trang tải
+checkUrlParameter();
     </script>
 </body>
 </html>
