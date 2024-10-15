@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xem Biểu Mẫu</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="form-viewer">
+        <h1>Biểu Mẫu</h1>
+        <div id="form-questions"></div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const formData = urlParams.get('form');
+
+        if (formData) {
+            const decodedData = atob(formData);
+            const questions = JSON.parse(decodedData);
+
+            const formQuestionsDiv = document.getElementById('form-questions');
+            questions.forEach(q => {
+                formQuestionsDiv.innerHTML += `<div><strong>${q.question}</strong> (${q.type})</div>`;
+            });
+        } else {
+            document.getElementById('form-questions').innerHTML = '<p>Không có biểu mẫu nào để hiển thị.</p>';
+        }
+    </script>
+</body>
+</html>
