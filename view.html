@@ -10,6 +10,7 @@
     <div id="form-viewer">
         <h1>Biểu Mẫu</h1>
         <div id="form-questions"></div>
+        <button id="submit-answers">Gửi Câu Trả Lời</button>
     </div>
 
     <script>
@@ -19,14 +20,60 @@
         if (formData) {
             const decodedData = atob(formData);
             const questions = JSON.parse(decodedData);
-
             const formQuestionsDiv = document.getElementById('form-questions');
+
             questions.forEach(q => {
-                formQuestionsDiv.innerHTML += `<div><strong>${q.question}</strong> (${q.type})</div>`;
+                if (q.type === 'short-answer') {
+                    formQuestionsDiv.innerHTML += `<div><strong>${q.question}</strong> <input type="text" class="answer"></div>`;
+                } else if (q.type === 'multiple-choice') {
+                    const answers = q.answers ? q.answers.join(', ') : '';
+                    formQuestionsDiv.innerHTML += `
+                        <div><strong>${q.question}</strong>
+                            <div>
+                                ${answers.split(',').map(answer => `
+                                    <label>
+                                        <input type="radio" name="question${q.question}" value="${answer.trim()}"> ${answer.trim()}
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>`;
+                } else if (q.type === 'checkbox') {
+                    const answers = q.answers ? q.answers.join(', ') : '';
+                    formQuestionsDiv.innerHTML += `
+                        <div><strong>${q.question}</strong>
+                            <div>
+                                ${answers.split(',').map(answer => `
+                                    <label>
+                                        <input type="checkbox" value="${answer.trim()}"> ${answer.trim()}
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>`;
+                }
             });
         } else {
             document.getElementById('form-questions').innerHTML = '<p>Không có biểu mẫu nào để hiển thị.</p>';
         }
+
+        document.getElementById('submit-answers').addEventListener('click', () => {
+            const responses = {};
+            document.querySelectorAll('.answer').forEach((input, index) => {
+                responses[`Câu hỏi ${index + 1}`] = input.value;
+            });
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+            checkboxes.forEach((checkbox) => {
+                if (!responses[checkbox.name]) {
+                    responses[checkbox.name] = [];
+                }
+                responses[checkbox.name].push(checkbox.value);
+            });
+            const radios = document.querySelectorAll('input[type="radio"]:checked');
+            radios.forEach((radio) => {
+                responses[radio.name] = radio.value;
+            });
+            console.log('Câu trả lời:', responses);
+            alert('Câu trả lời đã được gửi. Xem trong console.');
+        });
     </script>
 </body>
 </html>
