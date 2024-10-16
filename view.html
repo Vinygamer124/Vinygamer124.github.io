@@ -1,50 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>View MCPE Addon</title>
-</head>
-<body>
-    <h1>View Addon</h1>
-    <div id="addonInfo">
-        <h2 id="title"></h2>
-        <p><strong>Creator:</strong> <span id="creator"></span></p>
-        <p><strong>Description:</strong> <span id="description"></span></p>
-        <img id="image" alt="Addon Image" style="max-width: 100%; height: auto;"><br><br>
-        <a id="downloadLink" download>Download Addon</a>
-    </div>
-
+    <title>Xem tập tin</title>
     <script>
-        // Lấy dữ liệu từ URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const addonId = urlParams.get('AddonId');
+        const viewFile = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const fileId = atob(urlParams.get('id')); // Giải mã mã ID
+            const storageName = 'YOUR_STORAGE_NAME'; // Thay thế bằng tên kho của bạn
+            const storageData = JSON.parse(localStorage.getItem(storageName));
+            const file = storageData.files[fileId];
 
-        if (addonId) {
-            // Lấy dữ liệu Addon từ LocalStorage
-            const addonData = JSON.parse(localStorage.getItem(addonId));
-
-            if (addonData) {
-                // Hiển thị dữ liệu lên trang
-                document.getElementById('title').innerText = addonData.title;
-                document.getElementById('creator').innerText = addonData.creator;
-                document.getElementById('description').innerText = addonData.description;
-
-                // Hiển thị hình ảnh
-                const imageSrc = `data:image/png;base64,${addonData.image}`;
-                document.getElementById('image').src = imageSrc;
-
-                // Tạo liên kết tải file Addon
-                const addonBlob = new Blob([addonData.addonFile], { type: 'application/octet-stream' });
-                const addonUrl = URL.createObjectURL(addonBlob);
-                document.getElementById('downloadLink').href = addonUrl;
-                document.getElementById('downloadLink').innerText = 'Download Addon';
+            if (file) {
+                const contentType = file.content.split(';')[0].split(':')[1];
+                document.write(`<iframe src="${file.content}" style="width:100%; height:100%;"></iframe>`);
             } else {
-                document.getElementById('addonInfo').innerText = 'Addon not found.';
+                document.write("<h2>Tập tin không tìm thấy!</h2>");
             }
-        } else {
-            document.getElementById('addonInfo').innerText = 'No Addon ID provided.';
-        }
+        };
     </script>
+</head>
+<body onload="viewFile()">
 </body>
 </html>
