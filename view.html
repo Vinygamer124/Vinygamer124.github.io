@@ -16,37 +16,34 @@
     </div>
 
     <script>
-        // Hàm để giải mã Base64
-        function decodeBase64(str) {
-            return decodeURIComponent(atob(str).split('').map(function(c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }).join(''));
-        }
-
         // Lấy dữ liệu từ URL
         const urlParams = new URLSearchParams(window.location.search);
-        const addonBase64 = urlParams.get('Addon');
+        const addonId = urlParams.get('AddonID');
 
-        if (addonBase64) {
-            const addonJson = decodeBase64(addonBase64);
-            const addonData = JSON.parse(addonJson);
+        if (addonId) {
+            // Truy xuất dữ liệu Addon từ localStorage
+            const addonData = JSON.parse(localStorage.getItem(addonId));
 
-            // Hiển thị dữ liệu lên trang
-            document.getElementById('title').innerText = addonData.title;
-            document.getElementById('creator').innerText = addonData.creator;
-            document.getElementById('description').innerText = addonData.description;
+            if (addonData) {
+                // Hiển thị dữ liệu lên trang
+                document.getElementById('title').innerText = addonData.title;
+                document.getElementById('creator').innerText = addonData.creator;
+                document.getElementById('description').innerText = addonData.description;
 
-            // Hiển thị hình ảnh
-            const imageSrc = `data:image/png;base64,${addonData.image}`;
-            document.getElementById('image').src = imageSrc;
+                // Hiển thị hình ảnh
+                const imageSrc = `data:image/png;base64,${addonData.image}`;
+                document.getElementById('image').src = imageSrc;
 
-            // Tạo liên kết tải file Addon
-            const addonBlob = new Blob([addonData.addonFile], { type: 'application/octet-stream' });
-            const addonUrl = URL.createObjectURL(addonBlob);
-            document.getElementById('downloadLink').href = addonUrl;
-            document.getElementById('downloadLink').innerText = 'Download Addon';
+                // Tạo liên kết tải file Addon
+                const addonBlob = new Blob([addonData.addonFile], { type: 'application/octet-stream' });
+                const addonUrl = URL.createObjectURL(addonBlob);
+                document.getElementById('downloadLink').href = addonUrl;
+                document.getElementById('downloadLink').innerText = 'Download Addon';
+            } else {
+                document.getElementById('addonInfo').innerText = 'Addon not found.';
+            }
         } else {
-            document.getElementById('addonInfo').innerText = 'No Addon data found.';
+            document.getElementById('addonInfo').innerText = 'No Addon ID found in URL.';
         }
     </script>
 </body>
