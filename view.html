@@ -18,10 +18,10 @@
     <script>
         // Lấy dữ liệu từ URL
         const urlParams = new URLSearchParams(window.location.search);
-        const addonId = urlParams.get('AddonID');
+        const addonId = urlParams.get('AddonId');
 
         if (addonId) {
-            // Truy xuất dữ liệu Addon từ localStorage
+            // Lấy dữ liệu Addon từ LocalStorage
             const addonData = JSON.parse(localStorage.getItem(addonId));
 
             if (addonData) {
@@ -43,7 +43,7 @@
                 document.getElementById('addonInfo').innerText = 'Addon not found.';
             }
         } else {
-            document.getElementById('addonInfo').innerText = 'No Addon ID found in URL.';
+            document.getElementById('addonInfo').innerText = 'No Addon ID provided.';
         }
     </script>
 </body>
