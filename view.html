@@ -1,79 +1,53 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xem Biểu Mẫu</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>View MCPE Addon</title>
 </head>
 <body>
-    <div id="form-viewer">
-        <h1>Biểu Mẫu</h1>
-        <div id="form-questions"></div>
-        <button id="submit-answers">Gửi Câu Trả Lời</button>
+    <h1>View Addon</h1>
+    <div id="addonInfo">
+        <h2 id="title"></h2>
+        <p><strong>Creator:</strong> <span id="creator"></span></p>
+        <p><strong>Description:</strong> <span id="description"></span></p>
+        <img id="image" alt="Addon Image" style="max-width: 100%; height: auto;"><br><br>
+        <a id="downloadLink" download>Download Addon</a>
     </div>
 
     <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const formData = urlParams.get('form');
-
-        if (formData) {
-            const decodedData = atob(formData);
-            const questions = JSON.parse(decodedData);
-            const formQuestionsDiv = document.getElementById('form-questions');
-
-            questions.forEach(q => {
-                if (q.type === 'short-answer') {
-                    formQuestionsDiv.innerHTML += `<div><strong>${q.question}</strong> <input type="text" class="answer"></div>`;
-                } else if (q.type === 'multiple-choice') {
-                    const answers = q.answers ? q.answers.join(', ') : '';
-                    formQuestionsDiv.innerHTML += `
-                        <div><strong>${q.question}</strong>
-                            <div>
-                                ${answers.split(',').map(answer => `
-                                    <label>
-                                        <input type="radio" name="question${q.question}" value="${answer.trim()}"> ${answer.trim()}
-                                    </label>
-                                `).join('')}
-                            </div>
-                        </div>`;
-                } else if (q.type === 'checkbox') {
-                    const answers = q.answers ? q.answers.join(', ') : '';
-                    formQuestionsDiv.innerHTML += `
-                        <div><strong>${q.question}</strong>
-                            <div>
-                                ${answers.split(',').map(answer => `
-                                    <label>
-                                        <input type="checkbox" value="${answer.trim()}"> ${answer.trim()}
-                                    </label>
-                                `).join('')}
-                            </div>
-                        </div>`;
-                }
-            });
-        } else {
-            document.getElementById('form-questions').innerHTML = '<p>Không có biểu mẫu nào để hiển thị.</p>';
+        // Hàm để giải mã Base64
+        function decodeBase64(str) {
+            return decodeURIComponent(atob(str).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
         }
 
-        document.getElementById('submit-answers').addEventListener('click', () => {
-            const responses = {};
-            document.querySelectorAll('.answer').forEach((input, index) => {
-                responses[`Câu hỏi ${index + 1}`] = input.value;
-            });
-            const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
-            checkboxes.forEach((checkbox) => {
-                if (!responses[checkbox.name]) {
-                    responses[checkbox.name] = [];
-                }
-                responses[checkbox.name].push(checkbox.value);
-            });
-            const radios = document.querySelectorAll('input[type="radio"]:checked');
-            radios.forEach((radio) => {
-                responses[radio.name] = radio.value;
-            });
-            console.log('Câu trả lời:', responses);
-            alert('Câu trả lời đã được gửi. Xem trong console.');
-        });
+        // Lấy dữ liệu từ URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const addonBase64 = urlParams.get('Addon');
+
+        if (addonBase64) {
+            const addonJson = decodeBase64(addonBase64);
+            const addonData = JSON.parse(addonJson);
+
+            // Hiển thị dữ liệu lên trang
+            document.getElementById('title').innerText = addonData.title;
+            document.getElementById('creator').innerText = addonData.creator;
+            document.getElementById('description').innerText = addonData.description;
+
+            // Hiển thị hình ảnh
+            const imageSrc = `data:image/png;base64,${addonData.image}`;
+            document.getElementById('image').src = imageSrc;
+
+            // Tạo liên kết tải file Addon
+            const addonBlob = new Blob([addonData.addonFile], { type: 'application/octet-stream' });
+            const addonUrl = URL.createObjectURL(addonBlob);
+            document.getElementById('downloadLink').href = addonUrl;
+            document.getElementById('downloadLink').innerText = 'Download Addon';
+        } else {
+            document.getElementById('addonInfo').innerText = 'No Addon data found.';
+        }
     </script>
 </body>
 </html>
