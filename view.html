@@ -4,23 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Xem tập tin</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        input {
+            margin-bottom: 10px;
+        }
+    </style>
     <script>
         const viewFile = () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const fileId = atob(urlParams.get('id')); // Giải mã mã ID
-            const storageName = 'YOUR_STORAGE_NAME'; // Thay thế bằng tên kho của bạn
+            const fileIdInput = document.getElementById('file-id-input').value;
+            const fileId = atob(fileIdInput); // Giải mã mã ID
+            const storageName = 'storageName'; // Giữ nguyên tên kho
             const storageData = JSON.parse(localStorage.getItem(storageName));
             const file = storageData.files[fileId];
 
             if (file) {
-                const contentType = file.content.split(';')[0].split(':')[1];
-                document.write(`<iframe src="${file.content}" style="width:100%; height:100%;"></iframe>`);
+                document.getElementById('file-content').innerHTML = `<iframe src="${file.content}" style="width:100%; height:100%;"></iframe>`;
             } else {
-                document.write("<h2>Tập tin không tìm thấy!</h2>");
+                document.getElementById('file-content').innerHTML = "<h2>Tập tin không tìm thấy!</h2>";
             }
         };
     </script>
 </head>
-<body onload="viewFile()">
+<body>
+    <h1>Xem Tập Tin</h1>
+    <input type="text" id="file-id-input" placeholder="Nhập ID tập tin">
+    <button onclick="viewFile()">Xem Tập Tin</button>
+    <div id="file-content" style="margin-top: 20px;"></div>
 </body>
 </html>
