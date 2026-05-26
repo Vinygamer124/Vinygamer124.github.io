@@ -1,473 +1,1153 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Chatbot AI</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-    .chat-container {
-      width: 400px;
-      background-color: #fff;
-      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-      padding: 20px;
-      border-radius: 10px;
-      position: relative;
-    }
-    .chat-box {
-      max-height: 300px;
-      overflow-y: auto;
-      border: 1px solid #ddd;
-      padding: 10px;
-      margin-bottom: 10px;
-    }
-    .chat-input {
-      width: calc(100% - 20px);
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-      margin-bottom: 10px;
-    }
-    .chat-button {
-      padding: 10px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      cursor: pointer;
-      border-radius: 5px;
-      margin-right: 5px;
-      margin-bottom: 5px;
-    }
-    .chat-button:hover {
-      background-color: #0056b3;
-    }
-    /* Modal Styles */
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 10;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      overflow: auto;
-      background-color: rgba(0,0,0,0.4);
-    }
-    .modal-content {
-      background-color: #fefefe;
-      margin: 10% auto;
-      padding: 20px;
-      border: 1px solid #888;
-      width: 80%;
-      border-radius: 10px;
-    }
-    .close {
-      color: #aaa;
-      float: right;
-      font-size: 28px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .close:hover,
-    .close:focus {
-      color: black;
-      text-decoration: none;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 8px;
-      text-align: left;
-    }
-    th {
-      background-color: #f2f2f2;
-    }
-    .action-button {
-      padding: 5px 10px;
-      margin-right: 5px;
-      background-color: #28a745;
-      color: white;
-      border: none;
-      cursor: pointer;
-      border-radius: 3px;
-    }
-    .action-button.delete {
-      background-color: #dc3545;
-    }
-    .action-button:hover {
-      opacity: 0.8;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CastLens — Camera → TV</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;600;700;800&display=swap');
+
+  :root {
+    --bg: #080a0f;
+    --surface: #0e1118;
+    --border: rgba(255,255,255,0.07);
+    --accent: #00e5ff;
+    --accent2: #ff3d71;
+    --text: #e8eaf0;
+    --muted: #5a6070;
+    --scan-line: rgba(0,229,255,0.03);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scan lines overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      var(--scan-line) 2px,
+      var(--scan-line) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* Grid bg */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  #app {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ─────────────────────── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.3rem;
+    letter-spacing: -0.02em;
+  }
+  .logo span { color: var(--accent); }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: background 0.4s, box-shadow 0.4s;
+  }
+  .dot.live { background: #00ff88; box-shadow: 0 0 10px #00ff88, 0 0 24px #00ff8855; animation: pulse 2s infinite; }
+  .dot.error { background: var(--accent2); box-shadow: 0 0 10px var(--accent2); }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* ── MAIN CONTENT ─────────────────── */
+  main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+
+  /* ── MODE SELECT ─────────────────── */
+  .mode-screen {
+    text-align: center;
+    max-width: 480px;
+    width: 100%;
+    animation: fadeUp 0.5s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .mode-screen h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2rem, 6vw, 3.2rem);
+    font-weight: 800;
+    line-height: 1.05;
+    margin-bottom: 12px;
+  }
+  .mode-screen h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  .mode-screen p {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-bottom: 48px;
+    line-height: 1.7;
+  }
+
+  .mode-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .mode-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px 24px;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    text-align: left;
+    position: relative;
+    overflow: hidden;
+  }
+  .mode-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.3s;
+    border-radius: 16px;
+  }
+  .mode-card.phone::before { background: radial-gradient(circle at 30% 50%, rgba(0,229,255,0.1), transparent 70%); }
+  .mode-card.tv::before   { background: radial-gradient(circle at 30% 50%, rgba(255,61,113,0.1), transparent 70%); }
+
+  .mode-card:hover { transform: translateY(-3px); }
+  .mode-card.phone:hover { border-color: var(--accent); box-shadow: 0 8px 32px rgba(0,229,255,0.15); }
+  .mode-card.tv:hover    { border-color: var(--accent2); box-shadow: 0 8px 32px rgba(255,61,113,0.15); }
+  .mode-card:hover::before { opacity: 1; }
+
+  .mode-card .icon {
+    font-size: 2.4rem;
+    margin-bottom: 16px;
+    display: block;
+  }
+  .mode-card h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .mode-card p {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin: 0;
+    line-height: 1.6;
+  }
+  .mode-card .tag {
+    position: absolute;
+    top: 16px; right: 16px;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+  .mode-card.phone .tag { background: rgba(0,229,255,0.12); color: var(--accent); }
+  .mode-card.tv    .tag { background: rgba(255,61,113,0.12); color: var(--accent2); }
+
+  /* ── CONNECT SCREEN ─────────────── */
+  .connect-screen {
+    max-width: 440px;
+    width: 100%;
+    animation: fadeUp 0.4s ease;
+  }
+
+  .back-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: 32px;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.2s;
+  }
+  .back-btn:hover { color: var(--text); }
+
+  .connect-screen h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin-bottom: 6px;
+  }
+  .connect-screen .sub {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-bottom: 36px;
+  }
+
+  .field-group {
+    margin-bottom: 20px;
+  }
+  .field-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+    display: block;
+  }
+  .code-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-family: 'DM Mono', monospace;
+    font-size: 1.5rem;
+    color: var(--text);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .code-input::placeholder { color: var(--muted); letter-spacing: 0.1em; font-size: 1rem; }
+  .code-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,229,255,0.1); }
+
+  .camera-select {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 18px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--text);
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235a6070' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+  }
+  .camera-select:focus { border-color: var(--accent); }
+
+  .btn-primary {
+    width: 100%;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+    margin-top: 8px;
+  }
+  .btn-primary:hover { opacity: 0.9; box-shadow: 0 4px 20px rgba(0,229,255,0.4); }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn-primary.red { background: var(--accent2); }
+  .btn-primary.red:hover { box-shadow: 0 4px 20px rgba(255,61,113,0.4); }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+    color: var(--muted);
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .generate-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .generate-row .code-input { text-align: left; flex: 1; }
+  .btn-gen {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--accent);
+    padding: 14px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color 0.2s;
+  }
+  .btn-gen:hover { border-color: var(--accent); }
+
+  /* ── PHONE STREAM ─────────────────── */
+  .phone-screen {
+    width: 100%;
+    max-width: 600px;
+    animation: fadeUp 0.4s ease;
+  }
+
+  .phone-screen .back-btn { margin-bottom: 24px; }
+
+  .preview-wrap {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: #000;
+    aspect-ratio: 16/9;
+    margin-bottom: 20px;
+  }
+  .preview-wrap video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .preview-overlay {
+    position: absolute;
+    top: 12px; left: 12px;
+    display: flex;
+    gap: 8px;
+  }
+  .cam-badge {
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .rec-badge {
+    background: rgba(255,61,113,0.85);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #fff;
+    display: none;
+    align-items: center;
+    gap: 5px;
+  }
+  .rec-badge.show { display: flex; }
+  .rec-dot { width: 6px; height: 6px; border-radius: 50%; background: #fff; animation: pulse 1s infinite; }
+
+  .controls-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .btn-ctrl {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    padding: 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .btn-ctrl:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-ctrl.active { border-color: var(--accent); color: var(--accent); background: rgba(0,229,255,0.06); }
+
+  .info-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.78rem;
+  }
+  .info-box .room-code { font-size: 1.1rem; color: var(--accent); letter-spacing: 0.15em; }
+  .info-box .peers { color: var(--muted); font-size: 0.7rem; }
+
+  /* ── TV SCREEN ────────────────────── */
+  .tv-screen {
+    width: 100%;
+    max-width: 900px;
+    animation: fadeUp 0.4s ease;
+  }
+
+  .tv-frame {
+    background: #000;
+    border-radius: 20px;
+    overflow: hidden;
+    border: 2px solid var(--border);
+    aspect-ratio: 16/9;
+    position: relative;
+    margin-bottom: 20px;
+    box-shadow: 0 20px 80px rgba(0,0,0,0.8);
+  }
+  .tv-frame video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  .tv-frame .tv-ui {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .tv-waiting {
+    text-align: center;
+  }
+  .tv-waiting .big-code {
+    font-size: clamp(3rem, 10vw, 6rem);
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-shadow: 0 0 40px rgba(0,229,255,0.4);
+    animation: glow 3s ease-in-out infinite;
+  }
+  @keyframes glow {
+    0%,100% { text-shadow: 0 0 30px rgba(0,229,255,0.3); }
+    50% { text-shadow: 0 0 60px rgba(0,229,255,0.7), 0 0 100px rgba(0,229,255,0.3); }
+  }
+  .tv-waiting .hint {
+    font-size: 0.78rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+  .tv-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+  }
+  .tv-footer .tv-info { font-size: 0.75rem; color: var(--muted); }
+  .tv-footer .tv-info strong { color: var(--text); }
+
+  /* Signal strength bars */
+  .signal {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 16px;
+  }
+  .signal span {
+    width: 4px;
+    background: var(--muted);
+    border-radius: 2px;
+    transition: background 0.3s;
+  }
+  .signal span:nth-child(1) { height: 5px; }
+  .signal span:nth-child(2) { height: 8px; }
+  .signal span:nth-child(3) { height: 11px; }
+  .signal span:nth-child(4) { height: 16px; }
+  .signal.connected span { background: #00ff88; }
+
+  /* ── LOG ───────────────────────── */
+  .log {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 0.7rem;
+    color: var(--muted);
+    max-height: 100px;
+    overflow-y: auto;
+    font-family: 'DM Mono', monospace;
+    line-height: 1.8;
+    scrollbar-width: thin;
+  }
+  .log .ok { color: #00ff88; }
+  .log .err { color: var(--accent2); }
+  .log .info { color: var(--accent); }
+
+  /* ── TOAST ──────────────────────── */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 20px;
+    font-size: 0.8rem;
+    color: var(--text);
+    z-index: 10000;
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    white-space: nowrap;
+    backdrop-filter: blur(12px);
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* loading spinner */
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid rgba(0,229,255,0.2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Hide screens */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* Responsive */
+  @media (max-width: 420px) {
+    .mode-cards { grid-template-columns: 1fr; }
+    header { padding: 16px 20px; }
+    main { padding: 24px 16px; }
+  }
+</style>
 </head>
 <body>
-  <div class="chat-container">
-    <div class="chat-box" id="chat-box"></div>
-    <input type="text" id="chat-input" class="chat-input" placeholder="Nhập tin nhắn...">
-    <button onclick="sendMessage()" class="chat-button">Gửi</button>
-    <button onclick="trainBot()" class="chat-button">Huấn luyện Bot</button>
-    <button onclick="downloadAIData()" class="chat-button">Tải xuống Dữ liệu AI</button>
-    <button onclick="uploadAIData()" class="chat-button">Tải lên Dữ liệu AI</button>
-    <button onclick="uploadTextFile()" class="chat-button">Tải lên Văn bản</button>
-    <button onclick="uploadImage()" class="chat-button">Tải lên Hình ảnh</button>
-    <button onclick="viewAIMemory()" class="chat-button">Xem Bộ nhớ AI</button>
-<button onclick="addGrammarRule()" class="chat-button">Thêm Cấu trúc Ngữ pháp</button>
-  </div>
 
-  <!-- Modal for AI Memory -->
-  <div id="aiMemoryModal" class="modal">
-    <div class="modal-content">
-      <span class="close" onclick="closeModal()">&times;</span>
-      <h2>Bộ nhớ AI</h2>
-      <table id="aiMemoryTable">
-        <thead>
-          <tr>
-            <th>Câu hỏi</th>
-            <th>Trả lời</th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- Nội dung sẽ được thêm bằng JavaScript -->
-        </tbody>
-      </table>
+<div id="app">
+  <header>
+    <div class="logo">Cast<span>Lens</span></div>
+    <div class="status-pill">
+      <div class="dot" id="statusDot"></div>
+      <span id="statusText">OFFLINE</span>
     </div>
-  </div>
+  </header>
 
-  <!-- Modal for Drawing -->
-  <div id="drawModal" class="modal">
-    <div class="modal-content">
-      <span class="close" onclick="closeModal()">&times;</span>
-      <h2>Vẽ và Gán Tên Vật thể</h2>
-      <canvas id="drawCanvas" width="300" height="300" style="border:1px solid #000;"></canvas>
-      <br>
-      <input type="text" id="objectName" placeholder="Tên vật thể...">
-      <button onclick="saveDrawnObject()" class="chat-button">Lưu</button>
+  <main>
+    <!-- MODE SELECT -->
+    <div class="screen active" id="modeScreen">
+      <div class="mode-screen">
+        <h1>Chiếu camera<br>lên <em>màn hình lớn</em></h1>
+        <p>Kết nối điện thoại và TV qua mã phòng.<br>Không cần cài app, không cần server riêng.</p>
+        <div class="mode-cards">
+          <div class="mode-card phone" onclick="selectMode('phone')">
+            <span class="tag">Nguồn</span>
+            <span class="icon">📱</span>
+            <h2>Điện thoại</h2>
+            <p>Dùng camera để truyền video realtime lên TV</p>
+          </div>
+          <div class="mode-card tv" onclick="selectMode('tv')">
+            <span class="tag">Nhận</span>
+            <span class="icon">📺</span>
+            <h2>TV / Màn hình</h2>
+            <p>Nhận tín hiệu và hiển thị video từ điện thoại</p>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
 
-  <script>
-    // Tải dữ liệu AI từ Local Storage nếu có
-    let aiData = JSON.parse(localStorage.getItem('aiData')) || {
-      "hi": "Hi there!",
-      "how are you?": "I'm just a bot, but I'm doing great!",
-      "what's your name?": "I am a learning AI."
-    };
+    <!-- PHONE CONNECT -->
+    <div class="screen" id="phoneConnectScreen">
+      <div class="connect-screen">
+        <button class="back-btn" onclick="goBack()">← Quay lại</button>
+        <h2>📱 Điện thoại</h2>
+        <p class="sub">Nhập mã phòng TV để bắt đầu truyền camera</p>
 
-    // Lưu dữ liệu AI vào Local Storage
-    function saveAIData() {
-      localStorage.setItem('aiData', JSON.stringify(aiData));
-    }
+        <div class="field-group">
+          <label class="field-label">Chọn Camera</label>
+          <select class="camera-select" id="cameraSelect">
+            <option value="">⏳ Đang tải danh sách camera...</option>
+          </select>
+        </div>
 
-    // Gửi tin nhắn từ người dùng và trả lời của bot
-function sendMessage() {
-    const input = document.getElementById('chat-input').value.trim();
-    if (input === "") return;
-    const chatBox = document.getElementById('chat-box');
+        <div class="field-group">
+          <label class="field-label">Mã phòng TV (4 ký tự)</label>
+          <input class="code-input" id="phoneRoomInput" maxlength="4" placeholder="ABCD" oninput="this.value=this.value.toUpperCase()">
+        </div>
 
-    const userMessage = document.createElement('p');
-    userMessage.textContent = "User: " + input;
-    chatBox.appendChild(userMessage);
+        <button class="btn-primary" id="phoneConnectBtn" onclick="phoneConnect()">
+          Kết nối & Truyền
+        </button>
 
-    let response = "I don't understand that.";
-    const normalizedInput = input.toLowerCase();
-    if (aiData[normalizedInput]) {
-        // Lấy tất cả câu trả lời cho câu hỏi
-        const responses = aiData[normalizedInput];
-        if (Array.isArray(responses)) {
-            // Chọn ngẫu nhiên một câu trả lời
-            response = responses[Math.floor(Math.random() * responses.length)];
-        } else {
-            response = responses; // Trường hợp chỉ có một câu trả lời
-        }
-    }
+        <div id="phoneConnectLog" class="log" style="margin-top:16px;display:none;"></div>
+      </div>
+    </div>
 
-    const botMessage = document.createElement('p');
-    botMessage.textContent = "Bot: " + response;
-    chatBox.appendChild(botMessage);
+    <!-- PHONE STREAMING -->
+    <div class="screen" id="phoneStreamScreen">
+      <div class="phone-screen">
+        <button class="back-btn" onclick="hangup()">← Ngắt kết nối</button>
 
-    document.getElementById('chat-input').value = '';
-    chatBox.scrollTop = chatBox.scrollHeight;
+        <div class="preview-wrap">
+          <video id="localVideo" autoplay muted playsinline></video>
+          <div class="preview-overlay">
+            <div class="cam-badge">LIVE</div>
+            <div class="rec-badge show" id="recBadge"><div class="rec-dot"></div>TRANSMIT</div>
+          </div>
+        </div>
+
+        <div class="controls-row">
+          <button class="btn-ctrl" id="flipBtn" onclick="flipCamera()">🔄 Đảo camera</button>
+          <button class="btn-ctrl" id="mirrorBtn" onclick="toggleMirror()">↔ Lật ngang</button>
+          <button class="btn-ctrl" id="muteBtn" onclick="toggleAudio()">🔊 Âm thanh</button>
+        </div>
+
+        <div class="info-box">
+          <div>
+            <div style="font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Phòng</div>
+            <div class="room-code" id="phoneRoomDisplay">----</div>
+          </div>
+          <div style="text-align:right">
+            <div class="signal connected" id="phoneSignal">
+              <span></span><span></span><span></span><span></span>
+            </div>
+            <div class="peers" id="phonePeerCount" style="margin-top:4px">1 TV đang xem</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TV CONNECT -->
+    <div class="screen" id="tvConnectScreen">
+      <div class="connect-screen">
+        <button class="back-btn" onclick="goBack()">← Quay lại</button>
+        <h2>📺 TV / Màn hình</h2>
+        <p class="sub">Tạo hoặc nhập mã phòng để chờ kết nối từ điện thoại</p>
+
+        <div class="generate-row" style="margin-bottom:20px">
+          <input class="code-input" id="tvRoomInput" maxlength="4" placeholder="ABCD" oninput="this.value=this.value.toUpperCase()" style="font-size:1.5rem;letter-spacing:0.15em;text-align:center">
+          <button class="btn-gen" onclick="generateCode()">⚡ Tạo mã</button>
+        </div>
+
+        <button class="btn-primary red" id="tvWaitBtn" onclick="tvWait()">
+          Mở phòng & Chờ kết nối
+        </button>
+
+        <div id="tvConnectLog" class="log" style="margin-top:16px;display:none;"></div>
+      </div>
+    </div>
+
+    <!-- TV VIEWING -->
+    <div class="screen" id="tvViewScreen">
+      <div class="tv-screen">
+        <div class="tv-frame">
+          <video id="remoteVideo" autoplay playsinline></video>
+          <div class="tv-ui" id="tvUI">
+            <div class="tv-waiting">
+              <div class="big-code" id="tvCodeDisplay">----</div>
+              <div class="hint">Nhập mã này trên điện thoại để bắt đầu chiếu</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tv-footer">
+          <div class="tv-info">
+            Phòng: <strong id="tvRoomFooter">----</strong> &nbsp;|&nbsp;
+            <span id="tvStatusFooter" style="color:var(--muted)">Đang chờ...</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="signal" id="tvSignal"><span></span><span></span><span></span><span></span></div>
+            <button class="btn-ctrl" style="flex:none;padding:8px 16px;font-size:0.7rem" onclick="hangup()">✕ Đóng</button>
+          </div>
+        </div>
+
+        <div id="tvLog" class="log" style="margin-top:12px"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ──────────────────────────────────────────────
+// STATE
+// ──────────────────────────────────────────────
+let mode = null; // 'phone' | 'tv'
+let peer = null;
+let conn = null;
+let call = null;
+let localStream = null;
+let currentFacing = 'environment';
+let isMirrored = false;
+let isAudioOn = true;
+let roomCode = '';
+
+// ──────────────────────────────────────────────
+// NAVIGATION
+// ──────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
 }
 
-    // Thêm dữ liệu mới vào AI
-    function addTrainingData(newInput, newResponse) {
-      const normalizedInput = newInput.toLowerCase();
-      if (!aiData[normalizedInput]) {
-        aiData[normalizedInput] = newResponse;
-        saveAIData();
-        alert('Bot đã học được dữ liệu mới!');
+function goBack() {
+  cleanup();
+  showScreen('modeScreen');
+  setStatus('offline');
+}
+
+function selectMode(m) {
+  mode = m;
+  if (m === 'phone') {
+    loadCameras();
+    showScreen('phoneConnectScreen');
+  } else {
+    generateCode();
+    showScreen('tvConnectScreen');
+  }
+  setStatus('idle');
+}
+
+// ──────────────────────────────────────────────
+// STATUS
+// ──────────────────────────────────────────────
+function setStatus(state) {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  dot.className = 'dot';
+  const map = {
+    offline: ['', 'OFFLINE'],
+    idle: ['', 'READY'],
+    connecting: ['', 'CONNECTING...'],
+    live: ['live', 'LIVE'],
+    error: ['error', 'ERROR'],
+  };
+  const [cls, label] = map[state] || ['', state.toUpperCase()];
+  if (cls) dot.classList.add(cls);
+  txt.textContent = label;
+}
+
+// ──────────────────────────────────────────────
+// TOAST
+// ──────────────────────────────────────────────
+function toast(msg, duration = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ──────────────────────────────────────────────
+// LOG
+// ──────────────────────────────────────────────
+function appendLog(elId, msg, type = '') {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.style.display = 'block';
+  const line = document.createElement('div');
+  if (type) line.className = type;
+  const t = new Date().toLocaleTimeString('vi', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  line.textContent = `[${t}] ${msg}`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+// ──────────────────────────────────────────────
+// CAMERAS
+// ──────────────────────────────────────────────
+async function loadCameras() {
+  try {
+    await navigator.mediaDevices.getUserMedia({ video: true });
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cameras = devices.filter(d => d.kind === 'videoinput');
+    const sel = document.getElementById('cameraSelect');
+    sel.innerHTML = '';
+    if (cameras.length === 0) {
+      sel.innerHTML = '<option value="">Không tìm thấy camera</option>';
+      return;
+    }
+    cameras.forEach((c, i) => {
+      const opt = document.createElement('option');
+      opt.value = c.deviceId;
+      opt.textContent = c.label || `Camera ${i + 1}`;
+      sel.appendChild(opt);
+    });
+    // prefer back camera
+    const backCam = cameras.find(c => /back|rear|environment/i.test(c.label));
+    if (backCam) sel.value = backCam.deviceId;
+  } catch (e) {
+    document.getElementById('cameraSelect').innerHTML = '<option value="">Lỗi truy cập camera</option>';
+  }
+}
+
+// ──────────────────────────────────────────────
+// GENERATE CODE
+// ──────────────────────────────────────────────
+function generateCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  document.getElementById('tvRoomInput').value = code;
+  return code;
+}
+
+// ──────────────────────────────────────────────
+// PEERJS HELPERS
+// ──────────────────────────────────────────────
+function makePeerId(code, role) {
+  return `castlens-${code.toUpperCase()}-${role}`;
+}
+
+function createPeer(id) {
+  return new Promise((resolve, reject) => {
+    const p = new Peer(id, {
+      debug: 0,
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+        ]
+      }
+    });
+    p.on('open', () => resolve(p));
+    p.on('error', e => {
+      if (e.type === 'unavailable-id') {
+        reject(new Error('ID đã tồn tại. Hãy thử mã phòng khác.'));
       } else {
-        alert('Bot đã biết câu trả lời cho câu hỏi này!');
+        reject(e);
       }
-    }
-
-    // Huấn luyện bot với dữ liệu mới
-    function trainBot() {
-      const newInput = prompt("Nhập câu hỏi của bạn:");
-      if (newInput === null || newInput.trim() === "") return;
-      const newResponse = prompt("Nhập câu trả lời của bot:");
-      if (newResponse === null || newResponse.trim() === "") return;
-      addTrainingData(newInput.trim(), newResponse.trim());
-    }
-
-    // Tải xuống dữ liệu AI dưới dạng file JSON
-    function downloadAIData() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(aiData, null, 2));
-      const downloadAnchorNode = document.createElement('a');
-      downloadAnchorNode.setAttribute("href", dataStr);
-      downloadAnchorNode.setAttribute("download", "aiData.json");
-      document.body.appendChild(downloadAnchorNode);
-      downloadAnchorNode.click();
-      downloadAnchorNode.remove();
-    }
-
-    // Tải lên dữ liệu AI từ file JSON
-    function uploadAIData() {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'application/json';
-      input.onchange = event => {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          try {
-            const json = JSON.parse(e.target.result);
-            aiData = { ...aiData, ...json }; // Gộp dữ liệu mới với dữ liệu cũ
-            saveAIData();
-            alert('Bot đã học thêm dữ liệu từ file!');
-          } catch (error) {
-            alert('Đã xảy ra lỗi khi tải lên file JSON.');
-          }
-        };
-        reader.readAsText(file);
-      };
-      input.click();
-    }
-
-    // Tải lên tệp văn bản để huấn luyện toán
-    function uploadTextFile() {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.txt';
-      input.onchange = event => {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const text = e.target.result;
-          // Giả định mỗi dòng trong tệp văn bản là "câu hỏi: câu trả lời"
-          const lines = text.split('\n');
-          lines.forEach(line => {
-            const parts = line.split(':');
-            if (parts.length >= 2) {
-              const question = parts[0].trim();
-              const answer = parts.slice(1).join(':').trim();
-              addTrainingData(question, answer);
-            }
-          });
-          alert('Bot đã học được dữ liệu từ tệp văn bản!');
-        };
-        reader.readAsText(file);
-      };
-      input.click();
-    }
-
-    // Tải lên hình ảnh và gán tên cho vật thể
-    function uploadImage() {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.onchange = event => {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          // Hiển thị hình ảnh đã tải lên (có thể thêm xử lý nhận dạng hình ảnh tại đây)
-          const imageSrc = e.target.result;
-          // Mở modal vẽ và gán tên
-          openDrawModal(imageSrc);
-        };
-        reader.readAsDataURL(file);
-      };
-      input.click();
-    }
-
-    // Mở modal vẽ
-    function openDrawModal(imageSrc) {
-      const drawModal = document.getElementById('drawModal');
-      drawModal.style.display = 'block';
-      
-      const canvas = document.getElementById('drawCanvas');
-      const ctx = canvas.getContext('2d');
-      // Hiển thị hình ảnh lên canvas
-      const img = new Image();
-      img.onload = function() {
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      };
-      img.src = imageSrc;
-    }
-
-    // Đóng modal
-    function closeModal() {
-      const modals = document.getElementsByClassName('modal');
-      for (let modal of modals) {
-        modal.style.display = 'none';
-      }
-      // Xóa nội dung canvas khi đóng
-      const canvas = document.getElementById('drawCanvas');
-      if (canvas) {
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }
-    }
-
-    // Vẽ trên canvas
-    const canvas = document.getElementById('drawCanvas');
-    if (canvas) {
-      const ctx = canvas.getContext('2d');
-      let drawing = false;
-
-      canvas.addEventListener('mousedown', () => { drawing = true; });
-      canvas.addEventListener('mouseup', () => { drawing = false; ctx.beginPath(); });
-      canvas.addEventListener('mousemove', draw);
-
-      function draw(event) {
-        if (!drawing) return;
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
-        ctx.strokeStyle = 'red';
-        ctx.lineTo(event.clientX - canvas.getBoundingClientRect().left, event.clientY - canvas.getBoundingClientRect().top);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(event.clientX - canvas.getBoundingClientRect().left, event.clientY - canvas.getBoundingClientRect().top);
-      }
-    }
-
-    // Lưu vật thể đã vẽ và tên
-    function saveDrawnObject() {
-      const objectName = document.getElementById('objectName').value.trim();
-      if (objectName === "") {
-        alert('Vui lòng nhập tên vật thể.');
-        return;
-      }
-      // Lưu tên vật thể vào aiData với khóa là tên vật thể
-      addTrainingData(objectName, `Bạn đã vẽ: ${objectName}`);
-      alert(`Vật thể "${objectName}" đã được lưu vào bộ nhớ AI!`);
-      closeModal();
-    }
-
-    // Xem bộ nhớ AI
-    function viewAIMemory() {
-      const modal = document.getElementById('aiMemoryModal');
-      const tableBody = document.querySelector('#aiMemoryTable tbody');
-      tableBody.innerHTML = ''; // Xóa nội dung cũ
-
-      for (let question in aiData) {
-        const response = aiData[question];
-        const row = document.createElement('tr');
-
-        const questionCell = document.createElement('td');
-        questionCell.textContent = question;
-        row.appendChild(questionCell);
-
-        const responseCell = document.createElement('td');
-        responseCell.textContent = response;
-        row.appendChild(responseCell);
-
-        const actionCell = document.createElement('td');
-
-        const editButton = document.createElement('button');
-        editButton.textContent = 'Chỉnh sửa';
-        editButton.className = 'action-button';
-        editButton.onclick = () => editAIMemory(question);
-        actionCell.appendChild(editButton);
-
-        const deleteButton = document.createElement('button');
-        deleteButton.textContent = 'Xoá';
-        deleteButton.className = 'action-button delete';
-        deleteButton.onclick = () => deleteAIMemory(question);
-        actionCell.appendChild(deleteButton);
-
-        row.appendChild(actionCell);
-        tableBody.appendChild(row);
-      }
-
-      modal.style.display = 'block';
-    }
-
-    // Chỉnh sửa bộ nhớ AI
-    function editAIMemory(question) {
-      const newQuestion = prompt("Chỉnh sửa câu hỏi:", question);
-      if (newQuestion === null || newQuestion.trim() === "") return;
-      const newResponse = prompt("Chỉnh sửa câu trả lời:", aiData[question]);
-      if (newResponse === null || newResponse.trim() === "") return;
-
-      // Xóa câu hỏi cũ và thêm câu hỏi mới
-      delete aiData[question];
-      addTrainingData(newQuestion.trim(), newResponse.trim());
-      viewAIMemory();
-    }
-
-    // Xoá bộ nhớ AI
-    function deleteAIMemory(question) {
-      if (confirm(`Bạn có chắc chắn muốn xoá câu hỏi: "${question}"?`)) {
-        delete aiData[question];
-        saveAIData();
-        alert('Đã xoá câu hỏi và trả lời!');
-        viewAIMemory();
-      }
-    }
-
-    // Xử lý khi nhấn ngoài modal để đóng
-    window.onclick = function(event) {
-      const modals = document.getElementsByClassName('modal');
-      for (let modal of modals) {
-        if (event.target == modal) {
-          modal.style.display = 'none';
-          // Xóa nội dung canvas khi đóng
-          const canvas = document.getElementById('drawCanvas');
-          if (canvas) {
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-          }
-        }
-      }
-    }
-
-    // Xử lý nhận dạng hình ảnh (Giới hạn - yêu cầu xử lý phía client)
-    // Bạn có thể tích hợp TensorFlow.js hoặc một thư viện nhận dạng hình ảnh khác tại đây.
-    // Tuy nhiên, do tính phức tạp và giới hạn của phía client, ví dụ này sẽ chỉ lưu tên vật thể do người dùng nhập.
-function calculateExpression(expression) {
-    try {
-        // Chỉ cho phép các phép toán cơ bản
-        const sanitizedExpression = expression.replace(/[^0-9+\-*/(). ]/g, '');
-        return eval(sanitizedExpression);
-    } catch (error) {
-        return "Có lỗi xảy ra khi tính toán.";
-    }
-}
-function addGrammarRule() {
-    const input = prompt("Nhập cấu trúc ngữ pháp (ví dụ: 'câu hỏi: câu trả lời 1, câu trả lời 2')");
-    if (input) {
-        const [question, answers] = input.split(':');
-        const answersArray = answers.split(',').map(ans => ans.trim());
-        aiData[question.trim().toLowerCase()] = answersArray;
-        saveAIData();
-        alert("Cấu trúc ngữ pháp đã được thêm!");
-    }
+    });
+  });
 }
 
-  </script>
+// ──────────────────────────────────────────────
+// PHONE FLOW
+// ──────────────────────────────────────────────
+async function phoneConnect() {
+  const code = document.getElementById('phoneRoomInput').value.trim().toUpperCase();
+  if (code.length !== 4) { toast('⚠️ Nhập đúng 4 ký tự'); return; }
+
+  const btn = document.getElementById('phoneConnectBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Đang kết nối...';
+  setStatus('connecting');
+  roomCode = code;
+
+  try {
+    // Get camera stream
+    const deviceId = document.getElementById('cameraSelect').value;
+    const constraints = {
+      video: deviceId ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } } : { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: true
+    };
+    appendLog('phoneConnectLog', 'Yêu cầu quyền camera...', 'info');
+    localStream = await navigator.mediaDevices.getUserMedia(constraints);
+    appendLog('phoneConnectLog', 'Camera OK ✓', 'ok');
+
+    // Create peer
+    appendLog('phoneConnectLog', 'Kết nối PeerJS...', 'info');
+    const phoneId = makePeerId(code, 'phone-' + Date.now());
+    peer = await createPeer(phoneId);
+    appendLog('phoneConnectLog', `Peer ID: ${peer.id}`, 'ok');
+
+    // Call TV
+    const tvId = makePeerId(code, 'tv');
+    appendLog('phoneConnectLog', `Gọi TV: ${tvId}...`, 'info');
+    call = peer.call(tvId, localStream);
+
+    if (!call) throw new Error('Không thể khởi tạo cuộc gọi. TV chưa mở phòng?');
+
+    call.on('stream', () => {
+      appendLog('phoneConnectLog', 'TV đã nhận stream!', 'ok');
+    });
+
+    call.on('close', () => {
+      appendLog('phoneConnectLog', 'TV ngắt kết nối.', 'err');
+      toast('📺 TV đã ngắt kết nối');
+      setStatus('idle');
+      document.getElementById('phonePeerCount').textContent = '0 TV đang xem';
+      document.getElementById('phoneSignal').className = 'signal';
+    });
+
+    call.on('error', e => {
+      appendLog('phoneConnectLog', `Lỗi: ${e.message}`, 'err');
+    });
+
+    // Show stream screen
+    showScreen('phoneStreamScreen');
+    document.getElementById('localVideo').srcObject = localStream;
+    document.getElementById('phoneRoomDisplay').textContent = code;
+    setStatus('live');
+
+    // Handle peer connection events
+    peer.on('connection', c => {
+      conn = c;
+      c.on('data', handleCtrlMsg);
+    });
+
+    appendLog('phoneConnectLog', 'Đang truyền!', 'ok');
+
+  } catch (e) {
+    appendLog('phoneConnectLog', `Lỗi: ${e.message}`, 'err');
+    toast('❌ ' + e.message);
+    setStatus('error');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = 'Kết nối & Truyền';
+}
+
+function handleCtrlMsg(data) {
+  // Control messages from TV (future use)
+  console.log('Ctrl:', data);
+}
+
+async function flipCamera() {
+  if (!localStream) return;
+  currentFacing = currentFacing === 'environment' ? 'user' : 'environment';
+  try {
+    const newStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: currentFacing, width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: true
+    });
+    const videoTrack = newStream.getVideoTracks()[0];
+    const sender = call?.peerConnection?.getSenders().find(s => s.track?.kind === 'video');
+    if (sender) await sender.replaceTrack(videoTrack);
+
+    localStream.getVideoTracks().forEach(t => t.stop());
+    localStream = newStream;
+    document.getElementById('localVideo').srcObject = localStream;
+    toast(currentFacing === 'user' ? '🤳 Camera trước' : '📷 Camera sau');
+  } catch (e) {
+    toast('❌ Không thể đảo camera');
+  }
+}
+
+function toggleMirror() {
+  isMirrored = !isMirrored;
+  const v = document.getElementById('localVideo');
+  v.style.transform = isMirrored ? 'scaleX(-1)' : 'scaleX(1)';
+  const btn = document.getElementById('mirrorBtn');
+  btn.classList.toggle('active', isMirrored);
+  toast(isMirrored ? '↔ Đã lật ngang' : '↔ Đã bỏ lật');
+}
+
+function toggleAudio() {
+  if (!localStream) return;
+  isAudioOn = !isAudioOn;
+  localStream.getAudioTracks().forEach(t => t.enabled = isAudioOn);
+  const btn = document.getElementById('muteBtn');
+  btn.textContent = isAudioOn ? '🔊 Âm thanh' : '🔇 Tắt tiếng';
+  btn.classList.toggle('active', !isAudioOn);
+  toast(isAudioOn ? '🔊 Bật âm thanh' : '🔇 Tắt âm thanh');
+}
+
+// ──────────────────────────────────────────────
+// TV FLOW
+// ──────────────────────────────────────────────
+async function tvWait() {
+  const code = document.getElementById('tvRoomInput').value.trim().toUpperCase();
+  if (code.length !== 4) { toast('⚠️ Nhập hoặc tạo mã 4 ký tự'); return; }
+
+  const btn = document.getElementById('tvWaitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Đang mở phòng...';
+  setStatus('connecting');
+  roomCode = code;
+
+  appendLog('tvConnectLog', `Mở phòng: ${code}`, 'info');
+
+  try {
+    const tvId = makePeerId(code, 'tv');
+    peer = await createPeer(tvId);
+    appendLog('tvConnectLog', `Peer sẵn sàng: ${tvId}`, 'ok');
+
+    peer.on('call', incomingCall => {
+      call = incomingCall;
+      appendLog('tvConnectLog', `Điện thoại kết nối!`, 'ok');
+      incomingCall.answer();
+
+      incomingCall.on('stream', remoteStream => {
+        appendLog('tvConnectLog', 'Nhận video stream!', 'ok');
+        const vid = document.getElementById('remoteVideo');
+        vid.srcObject = remoteStream;
+        document.getElementById('tvUI').style.display = 'none';
+        document.getElementById('tvStatusFooter').textContent = '● Đang phát';
+        document.getElementById('tvStatusFooter').style.color = '#00ff88';
+        document.getElementById('tvSignal').className = 'signal connected';
+        setStatus('live');
+        toast('📱 Điện thoại đã kết nối!');
+      });
+
+      incomingCall.on('close', () => {
+        appendLog('tvLog', 'Điện thoại ngắt kết nối.', 'err');
+        document.getElementById('tvUI').style.display = 'flex';
+        document.getElementById('tvStatusFooter').textContent = 'Điện thoại ngắt — đang chờ...';
+        document.getElementById('tvStatusFooter').style.color = 'var(--muted)';
+        document.getElementById('tvSignal').className = 'signal';
+        document.getElementById('remoteVideo').srcObject = null;
+        setStatus('idle');
+        toast('📱 Điện thoại đã ngắt kết nối');
+      });
+
+      incomingCall.on('error', e => {
+        appendLog('tvLog', `Lỗi call: ${e.message}`, 'err');
+      });
+    });
+
+    peer.on('connection', c => {
+      conn = c;
+    });
+
+    peer.on('error', e => {
+      appendLog('tvConnectLog', `Lỗi peer: ${e.message}`, 'err');
+      setStatus('error');
+    });
+
+    // Switch to TV view screen
+    showScreen('tvViewScreen');
+    document.getElementById('tvCodeDisplay').textContent = code;
+    document.getElementById('tvRoomFooter').textContent = code;
+    setStatus('idle');
+    appendLog('tvLog', `Phòng ${code} đang mở. Chờ điện thoại kết nối...`, 'info');
+
+  } catch (e) {
+    appendLog('tvConnectLog', `Lỗi: ${e.message}`, 'err');
+    toast('❌ ' + e.message);
+    setStatus('error');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = 'Mở phòng & Chờ kết nối';
+}
+
+// ──────────────────────────────────────────────
+// CLEANUP
+// ──────────────────────────────────────────────
+function hangup() {
+  cleanup();
+  showScreen('modeScreen');
+  setStatus('offline');
+  toast('🔌 Đã ngắt kết nối');
+}
+
+function cleanup() {
+  if (localStream) {
+    localStream.getTracks().forEach(t => t.stop());
+    localStream = null;
+  }
+  if (call) { try { call.close(); } catch(e){} call = null; }
+  if (conn) { try { conn.close(); } catch(e){} conn = null; }
+  if (peer) { try { peer.destroy(); } catch(e){} peer = null; }
+
+  // Reset videos
+  const lv = document.getElementById('localVideo');
+  const rv = document.getElementById('remoteVideo');
+  if (lv) lv.srcObject = null;
+  if (rv) rv.srcObject = null;
+
+  // Reset TV UI
+  const tvUI = document.getElementById('tvUI');
+  if (tvUI) tvUI.style.display = 'flex';
+
+  // Reset logs
+  ['phoneConnectLog','tvConnectLog','tvLog'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.innerHTML = ''; el.style.display = 'none'; }
+  });
+
+  isMirrored = false;
+  isAudioOn = true;
+  currentFacing = 'environment';
+  roomCode = '';
+  mode = null;
+}
+
+// ──────────────────────────────────────────────
+// KEYBOARD SHORTCUTS
+// ──────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    const screens = ['phoneStreamScreen', 'tvViewScreen', 'phoneConnectScreen', 'tvConnectScreen'];
+    for (const s of screens) {
+      if (document.getElementById(s).classList.contains('active')) {
+        if (s.endsWith('Screen') && !s.includes('Connect')) hangup();
+        else goBack();
+        break;
+      }
+    }
+  }
+  // Enter to submit
+  if (e.key === 'Enter') {
+    if (document.getElementById('phoneConnectScreen').classList.contains('active')) phoneConnect();
+    if (document.getElementById('tvConnectScreen').classList.contains('active')) tvWait();
+  }
+});
+</script>
 </body>
 </html>
